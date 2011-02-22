@@ -3,7 +3,7 @@ Description: Trim reads from the 3'-end and extract reads (or read pairs) of
 good quality. If the reads are paired, the filtering is done pairwise, and 
 if one read in a pair has low quality, the remaning read is saved as single end.
 
-Usage: perl fastqEndTrimming.pl -fastq1=file1 [-fastq2=file2 
+Usage: perl condetri.pl -fastq1=file1 [-fastq2=file2 
 			-prefix=s -hq=N -lq=N -frac=N -minlen=N -mh=N -ml=N -sc=N]
 
 -fastq1=file 	 Fastq file. If a second file is given, the files are trimmed
