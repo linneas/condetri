@@ -1,0 +1,23 @@
+#labels Featured
+Description: Trim reads from the 3'-end and extract reads (or read pairs) of
+good quality. If the reads are paired, the filtering is done pairwise, and 
+if one read in a pair has low quality, the remaning read is saved as single end.
+
+Usage: perl fastqEndTrimming.pl -fastq1=file1 [-fastq2=file2 
+			-prefix=s -hq=N -lq=N -frac=N -minlen=N -mh=N -ml=N -sc=N]
+
+-fastq1=file 	 Fastq file. If a second file is given, the files are trimmed
+-fastq2=file 	 as a pair. The reads must have the same order in both files.
+-prefix=string 	 Prefix for the output file(s). The filtered fastq file(s) will
+ 		 be named prefix_trim1.fastq (and prefix_trim2.fastq if present). For pairs,
+ 		 a third file will be given with unpaired reads (reads from pairs where one 
+ 		 low quality read has been removed).
+-hq=N 		 Hiqh quality threshold [25].
+-lq=N 		 Low quality threshold [10].
+-frac=[0,1]	 Fraction of read that must exceed hq [0.8].
+-minlen=N 	 Min allowed read length [50].
+-mh=N 		 When this no of sequential hq bases is reached, the trimming stops [5].
+-ml=N 		 Max no of lq bases allowed after a stretch of hq bases from 3'-end [1].
+-sc=N		 Illumina scoring table, Score=ASCII-sc, usually 64, 33 in old pipe. [64].
+-q 		 Print Illumina scoring table.
+-h 		 Print this help message.
