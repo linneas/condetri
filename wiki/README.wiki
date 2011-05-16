@@ -41,7 +41,8 @@ perl condetri.pl -fastq1=file1 `[`-fastq2=file2 -prefix=s -hq=N -lq=N -frac=N -m
  *-minlen=N* 	 Min allowed read length `[`50`]`.
  *-mh=N* 	 When this no of consecutive hq bases is reached, the trimming stops `[`5`]`.
  *-ml=N*	  	 Max no of lq bases allowed after a stretch of hq bases from 3'-end `[`1`]`.
- *-sc=N* 	 Illumina scoring table, Score=ASCII-sc, usually 64, is Sanger standard. Can be set to any other integer if wanted `[`64`]`.
+ *-sc=N* 	 Illumina scoring table, Score=ASCII-sc, usually 64, is Sanger
+  	  	 standard. Can be set to any other integer if wanted `[`64`]`.
  *-q* 		 Prints Illumina scoring table.
  *-h* 		 Prints a help message.
 </pre>
