@@ -9,7 +9,7 @@ pair has low quality, the remaining read is saved as single end.
 
 <BR>
 ==Usage==
-perl condetri.pl -fastq1=file1 `[`-fastq2=file2 -prefix=s -cutfirst=i -hq=i -lq=i -frac=±`[`0,1`]` -minlen=i -mh=i -ml=i -sc=i -rmN`]`
+perl condetri.pl -fastq1=file1 `[`-fastq2=file2 -prefix=s -cutfirst=i -hq=i -lq=i -frac=`[`0,1`]` -minlen=i -mh=i -ml=i -sc=i -rmN`]`
 
 <BR>
 ==Description==
