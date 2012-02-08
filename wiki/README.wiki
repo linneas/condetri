@@ -33,33 +33,33 @@ The parameters -cutfirst and -rmN was added to ConDeTri in version 2.0 (for deta
 ==Input parameters== 
 (default values in brackets `[``]`)
 <pre>
- *-fastq1=file*   Fastq file. If a second file is given, the files are trimmed as
- *-fastq2=file*   a pair. The reads must have the same order in both files.
- *-prefix=string* Prefix for the output file(s). The filtered fastq file(s) will be
- 	  	 named prefix_trim1.fastq (and prefix_trim2.fastq if present).
+-fastq1=file	Fastq file. If a second file is given, the files are trimmed as
+-fastq2=file	 a pair. The reads must have the same order in both files.
+-prefix=string	Prefix for the output file(s). The filtered fastq file(s) will be
+	         named prefix_trim1.fastq (and prefix_trim2.fastq if present).
  	  	 For pairs, a third file will be given with unpaired reads (reads 
  	  	 from pairs where one low quality read has been removed).
- *-cutfirst=i*    Removes the first i base from the 5' end before trimming `[`0`]`.
- *-rmN*           Removes N from the 5' end before trimming`[`no`]`.
- *-hq=i* 	 Hiqh quality threshold `[`25`]`.
- *-lq=i* 	 Low quality threshold `[`10`]`.
- *-frac=`[`0,1`]`* 	 Fraction of read that must exceed hq `[`0.8`]`.
- *-minlen=i* 	 Min allowed read length `[`50`]`.
- *-mh=i* 	 When this no of consecutive hq bases is reached, the trimming stops `[`5`]`.
- *-ml=i*	  	 Max no of lq bases allowed after a stretch of hq bases from 3'-end `[`1`]`.
- *-sc=i* 	 Illumina scoring table, Score=ASCII-sc, usually 64, is Sanger
+-cutfirst=i	Removes the first i base from the 5' end before trimming `[`0`]`.
+-rmN		Removes N from the 5' end before trimming`[`no`]`.
+-hq=i		Hiqh quality threshold `[`25`]`.
+-lq=i		Low quality threshold `[`10`]`.
+-frac=`[`0,1`]`	Fraction of read that must exceed hq `[`0.8`]`.
+-minlen=i	Min allowed read length `[`50`]`.
+-mh=i		When this no of consecutive hq bases is reached, the trimming stops `[`5`]`.
+-ml=i		Max no of lq bases allowed after a stretch of hq bases from 3'-end `[`1`]`.
+-sc=i		Illumina scoring table, Score=ASCII-sc, usually 64, is Sanger
   	  	 standard. Can be set to any other integer if wanted `[`64`]`.
- *-q* 		 Prints Illumina scoring table.
- *-h* 		 Prints a help message.
+-q		Prints Illumina scoring table.
+-h		Prints a help message.
 </pre>
 <BR>
 ==Output files==
 <pre>
- *prefix_trim1.fastq* 	  	 File(s) with the trimmed reads (one file for
- *prefix_trim2.fastq* 	  	 single-end data, three for paired-end data, where
- *prefix_trim_unpaired.fastq* 	 the last file includes reads from the two input
+prefix_trim1.fastq		File(s) with the trimmed reads (one file for
+prefix_trim2.fastq		single-end data, three for paired-end data, where
+prefix_trim_unpaired.fastq	the last file includes reads from the two input
  	  	  	  	 files whose read pair had too poor quality.
- *prefix.stats* 	  	  	 Includes basic statistics in columns.
+prefix.stats			Includes basic statistics in columns.
 </pre>
 The columns for the .stats file are the following:<BR>
 PREFIX, NUMBER OF READS IN ORIGINAL FILE(S), NUMBER OF BASES IN ORIGINAL FILE(S), NO OF PAIRED READS AFTER TRIMMING,<BR>NO OF BASES IN PAIRS AFTER TRIMMING, NO OF UNPAIRED READS AFTER TRIMMING, NO OF UNPAIRED BASES AFTER TRIMMING.
