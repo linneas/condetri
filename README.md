@@ -44,7 +44,8 @@ The parameters -cutfirst and -rmN was added to ConDeTri? in version 2.0 (for det
  -minlen=i      Min allowed read length [50].
  -mh=i          When this no of consecutive hq bases is reached, the trimming stops [5].
  -ml=i          Max no of lq bases allowed after a stretch of hq bases from 3'-end [1].
- -sc=i          Illumina scoring table, Score=ASCII-sc, usually 64, is Sanger
+ -sc=i          Illumina scoring table: Score=ASCII-sc. Illumina GAII (for which ConDeTri
+                 was written) used 64, newer Illumina data uses 33, which is Sanger
                  standard. Can be set to any other integer if wanted [64].
  -q             Prints Illumina scoring table.
  -h             Prints a help message.
