@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # condetri.pl
-# September 2010, mod May 2011
+# September 2010, mod Oct 2011
 # Author: Linnéa Smeds (linnea.smeds@ebc.uu.se)
 
 use strict;
@@ -11,14 +11,14 @@ use Getopt::Long;
 
 my $usage = "# condetri.pl
 # September 2010
-# Version 1.1, May 2011
+# Version 2.0, Oct 2011
 # Author: Linnéa Smeds (linnea.smeds\@ebc.uu.se)
-# -------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------
 # Description: Trim reads from the 3'-end and extract reads (or read pairs) of
 # good quality. If the reads are paired, the filtering is done pairwise, and 
 # if one read in a pair has low quality, the remaning read is saved as single end.
 # Usage: perl condetri.pl -fastq1=file1 [-fastq2=file2 
-#			-prefix=s -hq=N -lq=N -frac=N -minlen=N -mh=N -ml=N -sc=N]
+#	-prefix=s -cutfirst=i -rmN -hq=i -lq=i -frac=i -minlen=i -mh=i -ml=i -sc=i]
 
 -fastq1=file \t Fastq file. If a second file is given, the files are trimmed
 -fastq2=file \t as a pair. The reads must have the same order in both files.
@@ -26,25 +26,29 @@ my $usage = "# condetri.pl
  \t\t be named prefix_trim1.fastq (and prefix_trim2.fastq if present). For pairs,
  \t\t a third file will be given with unpaired reads (reads from pairs where one 
  \t\t low quality read has been removed).
--hq=N \t\t Hiqh quality threshold [25].
--lq=N \t\t Low quality threshold [10].
+-cutfirst=i \t\t Remove i first bases from the 5'end [0].
+-rmN \t\t Remove non-ATCG bases from 5'end before any trimming [no].
+-hq=i \t\t Hiqh quality threshold [25].
+-lq=i \t\t Low quality threshold [10].
 -frac=[0,1]\t Fraction of read that must exceed hq [0.8].
--minlen=N \t Min allowed read length [50].
--mh=N \t\t When this no of sequential hq bases is reached, the trimming stops [5].
--ml=N \t\t Max no of lq bases allowed after a stretch of hq bases from 3'-end [1].
--sc=N\t\t Illumina scoring table, Score=ASCII-sc, usually 64, 33 in old pipe. [64].
--q \t\t Print Illumina scoring table.
+-minlen=i \t Min allowed read length [50].
+-mh=i \t\t When this no of sequential hq bases is reached, the trimming stops [5].
+-ml=i \t\t Max no of lq bases allowed after a stretch of hq bases from 3'-end [1].
+-sc=i\t\t Illumina scoring table, Score=ASCII-sc, usually 64, 33 in old pipe. [64].
+-q \t\t Print Illumina scoring table (64 offset).
 -h \t\t Print this help message.\n";
 		
 # Starting time
 my $time = time;
 
 # Input parameters
-my ($read1,$read2,$prefix,$HQlim,$lowlim,$minfrac,$minReadLen,$maxNoHQ,$maxNoLQ,$scoring,$tbl,$help);
+my ($read1,$read2,$prefix,$cutfirst,$removeN,$HQlim,$lowlim,$minfrac,$minReadLen,$maxNoHQ,$maxNoLQ,$scoring,$tbl,$help);
 GetOptions(
   	"fastq1=s" => \$read1,
    	"fastq2=s" => \$read2,
   	"prefix=s" => \$prefix,
+	"cutfirst=i" => \$cutfirst,
+	"rmN" => \$removeN,
   	"hq=i" => \$HQlim,
 	"lq=i" => \$lowlim,
 	"frac=s" => \$minfrac,
@@ -71,6 +75,9 @@ if($help) {
 unless($prefix) {
 	$prefix = $read1;
 	$prefix =~ s/\.\w+//;
+}
+unless($cutfirst) {
+	$cutfirst=0;
 }
 unless($HQlim) {
 	$HQlim=25;
@@ -103,9 +110,17 @@ unless(-e $read1) {
 }
 print "\ncondetri.pl started " . localtime() . "\n";
 print "------------------------------------------------------------------\n";
+print "Settings: ";
+if($cutfirst>0) {
+	print "Cutfirst=$cutfirst "; 
+}
+print "HQ=$HQlim LQ=$lowlim Frac=$minfrac MH=$maxNoHQ ML=$maxNoLQ Minlen=$minReadLen Scoring=$scoring\n";
+if($removeN) {
+	print "Remove non-ATCG characters from 5'-end before trimming\n";
+}
 
 my ($totNoReads, $pairReads, $unpairedReads) = (0,0,0);
-my ($totNoBases, $pairBases, $unpairedBases) = (0,0,0);
+my ($totNoBases, $pairBases, $unpairedBases, $firstbases) = (0,0,0,0);
 #--------------------------------------------------------------------------------
 # Trimming paired files
 if($read2) {
@@ -134,13 +149,34 @@ if($read2) {
 		$plus2 = <IN2>;
 		chomp($qual2 = <IN2>);
 		
+		my($newseq1, $newscore1, $newseq2, $newscore2);	
+
+		# Cut from 5'-end
+		if($cutfirst>0) {
+			$seq1 = substr($seq1, $cutfirst, length($seq1)-$cutfirst);
+			$qual1 = substr($qual1, $cutfirst, length($qual1)-$cutfirst);
+			$seq2 = substr($seq2, $cutfirst, length($seq2)-$cutfirst);
+			$qual2 = substr($qual2, $cutfirst, length($qual2)-$cutfirst);
+		}
+		
+		# Remove non-ATCG characters from 5'end
+		if($removeN) {
+			my ($tmp1, $tmp2);
+			($newseq1, $newscore1, $tmp1) = &removeNs($seq1, $qual1);
+			($newseq2, $newscore2, $tmp2) = &removeNs($seq2, $qual2);
+			$firstbases=$firstbases+$tmp1+$tmp2;
+		}
+		else{	
+			($newseq1, $newscore1, $newseq2, $newscore2) = ($seq1, $qual1, $seq2, $qual2);	
+		}
+		
 		# Trim both reads
-		my($newseq1, $newscore1) = &trimEnd($seq1,$qual1, $HQlim, $lowlim, $maxNoHQ, $maxNoLQ, $minReadLen, $scoring);
-		my($newseq2, $newscore2) = &trimEnd($seq2,$qual2, $HQlim, $lowlim, $maxNoHQ, $maxNoLQ, $minReadLen, $scoring);
+		($newseq1, $newscore1) = &trimEnd($newseq1,$newscore1, $HQlim, $lowlim, $maxNoHQ, $maxNoLQ, $minReadLen, $scoring);
+		($newseq2, $newscore2) = &trimEnd($newseq2,$newscore2, $HQlim, $lowlim, $maxNoHQ, $maxNoLQ, $minReadLen, $scoring);
 
 		# Check if reads are ok, print good reads
-		if(readOK($newscore1, $HQlim, $lowlim, $minfrac, $scoring)) {
-			if(&readOK($newscore2, $HQlim, $lowlim, $minfrac, $scoring)) {
+		if(readOK($newscore1, $HQlim, $lowlim, $minfrac, $scoring, $minReadLen)) {
+			if(&readOK($newscore2, $HQlim, $lowlim, $minfrac, $scoring, $minReadLen)) {
 				print OUT1 $head1 . $newseq1 ."\n" . $plus1 . $newscore1 . "\n";
 				print OUT2 $head2 . $newseq2 ."\n" . $plus2 . $newscore2 . "\n";
 				$pairReads+=2;
@@ -153,7 +189,7 @@ if($read2) {
 			}
 		}
 		else {
-			if(&readOK($newscore2, $HQlim, $lowlim, $minfrac, $scoring)) {
+			if(&readOK($newscore2, $HQlim, $lowlim, $minfrac, $scoring, $minReadLen)) {
 				print OUT3 $head2 . $newseq2 ."\n" . $plus2 . $newscore2 . "\n";
 				$unpairedReads++;
 				$unpairedBases+=length($newseq2);
@@ -179,9 +215,27 @@ else {
 		chomp($seq1 = <IN1>);
 		$plus1 = <IN1>;
 		chomp($qual1 = <IN1>);
+
+		my($newseq1, $newscore1);
+
+		# Cut from 5'-end
+		if($cutfirst>0) {
+			$seq1 = substr($seq1, $cutfirst, length($seq1)-$cutfirst);
+			$qual1 = substr($qual1, $cutfirst, length($qual1)-$cutfirst);
+		}
 		
-		my($newseq1, $newscore1) = &trimEnd($seq1,$qual1, $HQlim, $lowlim, $maxNoHQ, $maxNoLQ, $minReadLen, $scoring);
-		if(readOK($newscore1, $HQlim, $lowlim, $minfrac, $scoring)) {
+		# Remove non-ATCG characters from 5'end
+		if($removeN) {
+			my $tmp1;
+			($newseq1, $newscore1, $tmp1) = &removeNs($seq1, $qual1);
+			$firstbases+=$tmp1;
+		}
+		else {
+			($newseq1, $newscore1) = ($seq1, $qual1);
+		}
+		
+		($newseq1, $newscore1) = &trimEnd($newseq1, $newscore1, $HQlim, $lowlim, $maxNoHQ, $maxNoLQ, $minReadLen, $scoring);
+		if(readOK($newscore1, $HQlim, $lowlim, $minfrac, $scoring, $minReadLen)) {
 			print OUT1 $head1 . $newseq1 ."\n" . $plus1 . $newscore1 . "\n";
 			$unpairedReads++;
 			$unpairedBases+=length($newseq1);
@@ -195,6 +249,8 @@ else {
 	
 }
 
+$totNoBases+=$cutfirst*$totNoReads;
+$firstbases+=$cutfirst*$totNoReads;
 #--------------------------------------------------------------------------------
 # Print statistics to table
 open(STATS, ">$prefix".".stats");
@@ -203,8 +259,11 @@ print STATS $prefix."\t".$totNoReads."\t".$totNoBases."\t".$pairReads."\t".$pair
 
 print "\nDone!\n";
 print "------------------------------------------------------------------\n";
+print "$totNoReads reads with $totNoBases bases in input files\n";
+if($firstbases>0) {
+	print "$firstbases bases was removed from the 5'-end before trimming\n";
+}
 if($read2) {
-	print "$totNoReads reads with $totNoBases bases in input files\n";
 	my $percent = 100*($pairReads/$totNoReads);
 	$percent = sprintf "%.2f", $percent;
 	print "$pairReads ($percent%) reads with $pairBases bases saved in pair files\n";
@@ -214,7 +273,6 @@ if($read2) {
 	print "  due to low quality of the other read in the pair\n";
 }
 else {
-	print "$totNoReads reads with $totNoBases bases in input file\n";
 	my $percent = 100*($unpairedReads/$totNoReads);
 	$percent = sprintf "%.2f", $percent;
 	print "$unpairedReads ($percent%) reads with $unpairedBases bases saved\n";
@@ -232,6 +290,26 @@ else {
 #--------------------------------------------------------------------------------
 # Subroutines
 
+sub removeNs {
+	my $seq = shift;
+	my $qual = shift;
+	
+#	print "seq är $seq\n";
+
+	my @s = split("", $seq);
+	my @t = split("", $qual);
+	my $cnt = 0;
+	
+	while(scalar(@s)>0 && $s[0] !~ m/[ATCG]/i) {
+		shift(@s);
+		shift(@t);
+		$cnt++;	
+	}
+	$seq = join("", @s);
+	$qual = join("", @t);	
+	return ($seq, $qual, $cnt);
+}
+
 sub trimEnd { 
 
 	my $seq = shift;
@@ -243,53 +321,53 @@ sub trimEnd {
 	my $len = shift;
 	my $sc = shift;
 
-	
-	my $LQ_flag = 0;
-	my $HQ_warn = 0;
-	my $LQinHQ_flag = "no";
-	my ($qual_end, $seq_end) = ("","");
+	if($seq ne "") {
+		my $LQ_flag = 0;
+		my $HQ_warn = 0;
+		my $LQinHQ_flag = "no";
+		my ($qual_end, $seq_end) = ("","");
 
-	my @t = split("", $qual);
-	my @s = split("", $seq);
+		my @t = split("", $qual);
+		my @s = split("", $seq);
 
-	while(scalar(@t)>$len && $HQ_warn<=$maxHQ) {
+		while(scalar(@t)>$len && $HQ_warn<=$maxHQ) {
 
-		if (ord($t[scalar(@t)-1])-$sc < $HQ) {
+			if (ord($t[scalar(@t)-1])-$sc < $HQ) {
 			
-			if ($HQ_warn > 0 && $LQ_flag <= $maxLQ && ord($t[scalar(@t)-1])-$sc > $LQ) {
+				if ($HQ_warn > 0 && $LQ_flag <= $maxLQ && ord($t[scalar(@t)-1])-$sc > $LQ) {
+					$qual_end = pop(@t).$qual_end;
+					$seq_end = pop(@s).$seq_end;
+					$LQinHQ_flag = "yes";
+					$LQ_flag++;
+
+				}
+				else {
+					pop(@t);
+					pop(@s);
+					($qual_end, $seq_end) = ("","");
+					$HQ_warn = 0;
+				}
+				
+			}
+			else {
 				$qual_end = pop(@t).$qual_end;
 				$seq_end = pop(@s).$seq_end;
-				$LQinHQ_flag = "yes";
-				$LQ_flag++;
-
-			}
-			else {
-				pop(@t);
-				pop(@s);
-				($qual_end, $seq_end) = ("","");
-				$HQ_warn = 0;
-			}
-				
-		}
-		else {
-			$qual_end = pop(@t).$qual_end;
-			$seq_end = pop(@s).$seq_end;
-			if($LQinHQ_flag eq "yes") {
-				$HQ_warn = 1;
-				$LQinHQ_flag = "no";
-			}
-			else {
-				$HQ_warn++;
+				if($LQinHQ_flag eq "yes") {
+					$HQ_warn = 1;
+					$LQinHQ_flag = "no";
+				}
+				else {
+					$HQ_warn++;
+				}
 			}
 		}
+		$seq = join("", @s);
+		$qual = join("", @t);
+		$seq .= $seq_end;
+		$qual .=$qual_end;
+	
 	}
-	my ($newseq, $newscore)= ("","");
-	$newseq = join("", @s);
-	$newscore = join("", @t);
-	$newscore .=$qual_end;
-	$newseq .= $seq_end;
-	my @results = ($newseq, $newscore);
-	return @results;
+	return ($seq, $qual);
 }
 sub readOK {
 
@@ -298,7 +376,11 @@ sub readOK {
 	my $LQ = shift;
 	my $frac = shift;
 	my $sc = shift;
+	my $minlen = shift;
 		
+	if(length($qual)<$minlen) {
+		return 0;
+	}
 
 	my @t = split("", $qual);
 
