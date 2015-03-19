@@ -1,17 +1,18 @@
 #!/usr/bin/perl
 
 # condetri.pl
-# September 2010, mod Oct 2011, Mar 2012
+# September 2010, mod Oct 2011, Mar & Jun 2012
 # Author: Linnéa Smeds (linnea.smeds@ebc.uu.se)
 
 use strict;
 use warnings;
 use Getopt::Long;
+use IO::Zlib;
 
 
 my $usage = "# condetri.pl
 # September 2010
-# Version 2.1, Mar 2012
+# Version 2.2, June 2012
 # Author: Linnéa Smeds (linnea.smeds\@ebc.uu.se)
 # ---------------------------------------------------------------------------------
 # Description: Trim reads from the 3'-end and extract reads (or read pairs) of
@@ -20,7 +21,7 @@ my $usage = "# condetri.pl
 # Usage: perl condetri.pl -fastq1=file1 [-fastq2=file2 -prefix=s -cutfirst=i 
 # -rmN -hq=i -lq=i -frac=i -lfrac=i -minlen=i -mh=i -ml=i -sc=i -pb=s]
 
--fastq1=file \t Fastq file. If a second file is given, the files are trimmed
+-fastq1=file \t Fastq(.gz) file. If a second file is given, the files are trimmed
 -fastq2=file \t as a pair. The reads must have the same order in both files.
 -prefix=string \t Prefix for the output file(s). The filtered fastq file(s) will
  \t\t be named prefix_trim1.fastq (and prefix_trim2.fastq if present). For pairs,
@@ -160,12 +161,27 @@ if($read2) {
 	unless(-e $read2) {
 		die "Error: File $read2 doesn't exist!\n";
 	}
+
+	if ($read1 =~ /\.gz$/) {
+	   tie	*IN1,'IO::Zlib',$read1,"rb";
+	}
+	else {
+	   open(IN1, $read1);
+	}
+
+	if ($read2 =~ /\.gz$/) {
+	   tie	*IN2,'IO::Zlib',$read2,"rb";
+	}
+	else {
+	   open(IN2, $read2);
+	}
+	
+
 	my $out1 = $prefix . "_trim1.fastq";
 	my $out2 = $prefix . "_trim2.fastq";
 	my $out3 = $prefix . "_trim_unpaired.fastq";
 	my $out4 = $prefix . "_badreads.".$printBad;
-	open(IN1, $read1);
-	open(IN2, $read2);
+
 	open(OUT1, ">$out1");
 	open(OUT2, ">$out2");
 	open(OUT3, ">$out3");
@@ -267,7 +283,14 @@ if($read2) {
 else {
 	my $out1 = $prefix . "_trim.fastq";
 	my $out4 = $prefix . "_badreads.".$printBad;
-	open(IN1, $read1);
+
+	if ($read1 =~ /\.gz$/) {
+	   tie	*IN1,'IO::Zlib',$read1,"rb";
+	}
+	else {
+	   open(IN1, $read1);
+	}
+
 	open(OUT1, ">$out1");
 	if($printBad ne "") {
 		open(OUT4, ">$out4");
