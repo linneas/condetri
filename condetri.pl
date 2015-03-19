@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-# fastqEndTrimming.pl
-# September 2010, mod Jan 2011
+# condetri.pl
+# September 2010, mod May 2011
 # Author: Linnéa Smeds (linnea.smeds@ebc.uu.se)
 
 use strict;
@@ -9,8 +9,9 @@ use warnings;
 use Getopt::Long;
 
 
-my $usage = "# fastqEndTrimming.pl
-# September 2010, mod Jan 2011
+my $usage = "# condetri.pl
+# September 2010
+# Version 1.1, May 2011
 # Author: Linnéa Smeds (linnea.smeds\@ebc.uu.se)
 # -------------------------------------------------------------------------------
 # Description: Trim reads from the 3'-end and extract reads (or read pairs) of
@@ -100,7 +101,7 @@ unless($scoring) {
 unless(-e $read1) {
 	die "Error: File $read1 doesn't exist!\n";
 }
-print "\nfastqEndTrimming.pl started " . localtime() . "\n";
+print "\ncondetri.pl started " . localtime() . "\n";
 print "------------------------------------------------------------------\n";
 
 my ($totNoReads, $pairReads, $unpairedReads) = (0,0,0);
@@ -155,7 +156,7 @@ if($read2) {
 			if(&readOK($newscore2, $HQlim, $lowlim, $minfrac, $scoring)) {
 				print OUT3 $head2 . $newseq2 ."\n" . $plus2 . $newscore2 . "\n";
 				$unpairedReads++;
-				$unpairedBases+=length($newseq1);
+				$unpairedBases+=length($newseq2);
 			}
 		}
 		$totNoBases+=length($seq1)+length($seq2);
@@ -167,7 +168,7 @@ if($read2) {
 }
 # Trimming single end files
 else {
-	my $out1 = $prefix . "_trim1.fastq";
+	my $out1 = $prefix . "_trim.fastq";
 	open(IN1, $read1);
 	open(OUT1, ">$out1");	
 	print "Processing...\n";
@@ -205,14 +206,17 @@ print "------------------------------------------------------------------\n";
 if($read2) {
 	print "$totNoReads reads with $totNoBases bases in input files\n";
 	my $percent = 100*($pairReads/$totNoReads);
+	$percent = sprintf "%.2f", $percent;
 	print "$pairReads ($percent%) reads with $pairBases bases saved in pair files\n";
 	$percent = 100*($unpairedReads/$totNoReads);
+	$percent = sprintf "%.2f", $percent;
 	print "$unpairedReads ($percent%) reads with $unpairedBases bases saved in unpaired file\n";
-	print "  due to low quality of the mate\n";
+	print "  due to low quality of the other read in the pair\n";
 }
 else {
 	print "$totNoReads reads with $totNoBases bases in input file\n";
 	my $percent = 100*($unpairedReads/$totNoReads);
+	$percent = sprintf "%.2f", $percent;
 	print "$unpairedReads ($percent%) reads with $unpairedBases bases saved\n";
 }
 print "------------------------------------------------------------------\n";
