@@ -75,6 +75,7 @@ print "uniqueFastqPairs started " . localtime() . "\n";
 $| = 1;
 print "Going through all read pairs...\n";
 my($hd1, $hd2, $seq1, $seq2, $plus1, $plus2, $qual1, $qual2);
+my ($totCnt, $duplCnt)=(0,0);
 while(<RD1>) {
 	$hd1=$_;
 	chomp($seq1=<RD1>);
@@ -111,12 +112,14 @@ while(<RD1>) {
 			 $reads{$key}{'scr'}=$score;
 		}
 		$reads{$key}{'cpy'}++;
+		$duplCnt++;
 	}
 	else {
 		$reads{$key}{'scr'}=$score;
 		$reads{$key}{'id'}=$hd1;
 		$reads{$key}{'cpy'}=1;
 	}
+	$totCnt++;
 }
 close(RD1);
 close(RD2);
@@ -192,6 +195,10 @@ foreach my $key (sort {$a<=>$b} keys %copies) {
 }
 close(OUT);
 print "\tdone!\n";
+
+my $frac = 100*($duplCnt/$totCnt);
+$frac = sprintf "%.2f", $frac;
+print "$totCnt pairs in total, $duplCnt ($frac%) duplicated pairs removed.\n";
 
 $time = (time-$time);
 if($time<60) {
