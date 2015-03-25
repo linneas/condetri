@@ -9,11 +9,13 @@ use warnings;
 use Getopt::Long;
 use List::Util qw[min max];
 
-
 my $usage = "
 # filterPCRdupl.pl
 # November 2010	
 # Author: Linnéa Smeds (linnea.smeds\@ebc.uu.se)
+# This version doesn't fail when finding too short reads, but removes them and
+# prints a warning message. AND it can open gz files also the second time (so
+# that something is actually printed to the output..)
 # -----------------------------------------------------------------------------
 # Description: Extract all non-redundant read pairs in a fastq file pair, by 
 # comparing the first N bases in both reads between all pairs. If there are 
@@ -67,9 +69,20 @@ unless(-e $read2) {
 
 my %reads =();
 
-open(RD1, $read1);
-open(RD2, $read2);
+if ($read1 =~ /\.gz$/) {
+   open(RD1, "zcat $read1 |");
+}
+else {
+   open(RD1, $read1);
+}
 
+if ($read2 =~ /\.gz$/) {
+   open(RD2, "zcat $read2 |");
+}
+else {
+   open(RD2, $read2);
+}
+	
 print "uniqueFastqPairs started " . localtime() . "\n";
 
 $| = 1;
@@ -88,9 +101,10 @@ while(<RD1>) {
 	$qual2=<RD2>;
 	
 	if(min(length($seq1), length($seq2))<$baseComp) {
-		my $smallest =min(length($seq1), length($seq2));
-		die "Error: Try to compare $baseComp first bases, but the read length is $smallest.\n".
-			"Try decreasing -cmp below $smallest\n";
+		my $smallest = min(length($seq1), length($seq2));
+		print "WARNING: Try to compare $baseComp first bases, but the read length is $smallest.\n".
+			"Read pair deleted. Try decreasing -cmp below $smallest\n";
+		next;
 	}
 	my $key = substr($seq1, 0, $baseComp) . substr($seq2, 0, $baseComp);
 	my @t1 = split(//, $qual1);
@@ -142,8 +156,19 @@ my %copies = ();
 
 open(OUT1, ">$out1");
 open(OUT2, ">$out2");
-open(RD1, $read1);
-open(RD2, $read2);
+if ($read1 =~ /\.gz$/) {
+   open(RD1, "zcat $read1 |");
+}
+else {
+   open(RD1, $read1);
+}
+
+if ($read2 =~ /\.gz$/) {
+   open(RD2, "zcat $read2 |");
+}
+else {
+   open(RD2, $read2);
+}
 
 while(<RD1>) {
 	$hd1=$_;
